@@ -46,7 +46,8 @@ func Range(ptr unsafe.Pointer, size uintptr) int {
 // Slice attempts to decommit the memory that backs the provided slice.
 // After the call, the slice contents are undetermined and may contain
 // garbage.
-// It returns how many bytes of memory were succesfully decommitted:
+// Slice affects the whole slice capacity, i.e. buf[0:cap(buf)].
+// Slice returns how many bytes of memory were succesfully decommitted:
 // while it attempts to decommit as much as possible, it entirely depends
 // on whether and how the required functionality is exposed by the OS,
 // and as such it may result in the slice not being decommited at all, or
@@ -66,15 +67,7 @@ func Slice(buf []byte) int {
 var decommitHook func(uintptr, uintptr, uintptr, uintptr, int) (uintptr, int) // for testing
 
 func decommit(start, end uintptr) int {
-	var astart, aend uintptr
-	if psm != 0 {
-		astart = (start + psm) &^ psm
-		aend = end &^ psm
-	} else {
-		astart = (start + ps - 1) / ps * ps
-		aend = end / ps * ps
-	}
-	alength := int(aend - astart)
+	astart, aend, alength := pageAlign(start, end)
 	if decommitHook != nil {
 		astart, alength = decommitHook(start, end, astart, aend, alength)
 	}
@@ -82,4 +75,19 @@ func decommit(start, end uintptr) int {
 		return 0
 	}
 	return osDecommit(astart, alength)
+}
+
+func pageAlign(start, end uintptr) (astart, aend uintptr, alength int) {
+	if psm != 0 {
+		astart = (start + psm) &^ psm
+		aend = end &^ psm
+	} else {
+		astart = (start + ps - 1) / ps * ps
+		aend = end / ps * ps
+	}
+	if astart >= aend {
+		return 0, 0, 0
+	}
+	alength = int(aend - astart)
+	return
 }

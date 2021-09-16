@@ -21,6 +21,58 @@ func TestSlice(t *testing.T) {
 	}
 }
 
+func TestPageAlign(t *testing.T) {
+	oldps, oldpsm := ps, psm
+	t.Cleanup(func() {
+		ps, psm = oldps, oldpsm
+	})
+
+	ps4, psm4 := uintptr(1<<12), uintptr((1<<12)-1)
+	cases := []struct {
+		ps      uintptr
+		psm     uintptr
+		start   uintptr
+		end     uintptr
+		astart  uintptr
+		alength int
+	}{
+		{ps4, psm4, 5 * ps4, 6 * ps4, 5 * ps4, int(ps4)},
+		{ps4, psm4, 5 * ps4, 6*ps4 - 1, 0, 0},
+		{ps4, psm4, 5 * ps4, 6*ps4 + 1, 5 * ps4, int(ps4)},
+		{ps4, psm4, 5*ps4 - 1, 6 * ps4, 5 * ps4, int(ps4)},
+		{ps4, psm4, 5*ps4 + 1, 6 * ps4, 0, 0},
+		{ps4, psm4, 5*ps4 - 1, 6*ps4 - 1, 0, 0},
+		{ps4, psm4, 5*ps4 + 1, 6*ps4 - 1, 0, 0},
+		{ps4, psm4, 5*ps4 - 1, 6*ps4 + 1, 5 * ps4, int(ps4)},
+		{ps4, psm4, 5*ps4 + 1, 6*ps4 + 1, 0, 0},
+
+		{ps4, psm4, 5 * ps4, 7 * ps4, 5 * ps4, int(2 * ps4)},
+		{ps4, psm4, 5*ps4 + 1, 7 * ps4, 6 * ps4, int(ps4)},
+		{ps4, psm4, 5 * ps4, 7*ps4 - 1, 5 * ps4, int(ps4)},
+		{ps4, psm4, 5*ps4 + 1, 7*ps4 - 1, 0, 0},
+
+		{ps4, psm4, 5 * ps4, 8 * ps4, 5 * ps4, int(3 * ps4)},
+		{ps4, psm4, 5*ps4 + 1, 8 * ps4, 6 * ps4, int(2 * ps4)},
+		{ps4, psm4, 5 * ps4, 8*ps4 - 1, 5 * ps4, int(2 * ps4)},
+		{ps4, psm4, 5*ps4 + 1, 8*ps4 - 1, 6 * ps4, int(ps4)},
+
+		{ps4, psm4, 6 * ps4, 5 * ps4, 0, 0},
+	}
+	for idx, c := range cases {
+		t.Run(strconv.Itoa(idx), func(t *testing.T) {
+			t.Log(c)
+			ps, psm = c.ps, c.psm
+			astart, _, alength := pageAlign(c.start, c.end)
+			if astart != c.astart {
+				t.Error("astart", astart)
+			}
+			if alength != c.alength {
+				t.Error("alength", alength)
+			}
+		})
+	}
+}
+
 func ExamplePool() {
 	type buffer [16 * 1024]byte
 
@@ -48,6 +100,10 @@ func ExamplePool() {
 
 func setDecommitHook(t *testing.T) {
 	oldDecommitHook := decommitHook
+	t.Cleanup(func() {
+		decommitHook = oldDecommitHook
+	})
+
 	decommitHook = func(_ uintptr, _ uintptr, astart uintptr, aend uintptr, alength int) (uintptr, int) {
 		if astart%uintptr(os.Getpagesize()) != 0 {
 			t.Errorf("unaligned start %x", astart)
@@ -60,7 +116,4 @@ func setDecommitHook(t *testing.T) {
 		}
 		return astart, alength
 	}
-	t.Cleanup(func() {
-		decommitHook = oldDecommitHook
-	})
 }

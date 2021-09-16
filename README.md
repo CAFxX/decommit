@@ -9,8 +9,12 @@ The contents of a slice that has been decommitted are undeterminate: they could 
 ## Usage
 
 ```golang
-# Assume that buf is a slice larger than a page (normally 4KB, but OS dependent)
+// Assume that buf is a slice larger than a page (normally 4KB, but OS dependent:
+// see os.Getpagesize())
 decommit.Slice(buf)
+// If the OS supports it, the memory backing the slice has been decommitted, and
+// it will remain so until the slice contents (that are no undetermined) are
+// accessed for reading or writing.
 ```
 
 A common pattern is to use it together with `sync.Pool`:
