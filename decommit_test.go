@@ -21,6 +21,13 @@ func TestSlice(t *testing.T) {
 	}
 }
 
+func TestNilSlice(t *testing.T) {
+	setDecommitHook(t)
+	if Slice(nil) != 0 {
+		t.Error("nil slice decommitted!")
+	}
+}
+
 func TestPageAlign(t *testing.T) {
 	oldps, oldpsm := ps, psm
 	t.Cleanup(func() {

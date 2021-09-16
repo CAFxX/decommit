@@ -17,7 +17,9 @@ func init() {
 	}
 }
 
-// Slice attempts to decommit the memory that backs the provided slice.
+// Slice attempts to decommit the memory that backs the provided slice,
+// by asking the OS to decommit from memory as soon as possible the memory
+// region that holds the slice contents.
 // After the call, the slice contents are undetermined and may contain
 // garbage.
 // Slice affects the whole slice capacity, i.e. buf[0:cap(buf)].
@@ -25,7 +27,12 @@ func init() {
 // while it attempts to decommit as much as possible, it entirely depends
 // on whether and how the required functionality is exposed by the OS,
 // and as such it may result in the slice not being decommited at all, or
-// being decommitted only partially.
+// being decommitted only partially. Most operating systems place restrictions
+// on the granularity of this function, so it normally is possible to only
+// decommit whole memory pages (normally 4KB, but OS dependent: see
+// os.Getpagesize()): Slice will automatically perform the required
+// alignment operations, but this means that slices smaller than the page
+// size will not be decommitted.
 func Slice(buf []byte) int {
 	buf = buf[:cap(buf)]
 	if len(buf) < int(ps) || len(buf) == 0 {
