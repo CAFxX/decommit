@@ -17,32 +17,6 @@ func init() {
 	}
 }
 
-/*
-func Slice[T any](s []T) int {
-    s = s[:cap(s)]
-    var zero T
-    if len(s) * unsafe.Sizeof(zero) < ps {
-        return 0
-    }
-    start := uintptr(unsafe.Pointer(&s[0]))
-    end := start + len(s) * unsafe.Sizeof(zero)
-	l := decommit(start, end)
-	runtime.KeepAlive(s)
-	return l
-}
-
-func Range(ptr unsafe.Pointer, size uintptr) int {
-	if size < ps || ptr == nil {
-		return 0
-	}
-	start := uintptr(ptr)
-	end := start + size
-	l := decommit(start, end)
-	runtime.KeepAlive(ptr)
-	return l
-}
-*/
-
 // Slice attempts to decommit the memory that backs the provided slice.
 // After the call, the slice contents are undetermined and may contain
 // garbage.
