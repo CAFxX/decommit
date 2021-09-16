@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"sync"
 	"testing"
+
+	sigar "github.com/cloudfoundry/gosigar"
 )
 
 func TestSlice(t *testing.T) {
@@ -78,6 +80,29 @@ func TestPageAlign(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestLottaAllocs(t *testing.T) {
+	mem := sigar.Mem{}
+	mem.Get()
+	swap := sigar.Swap{}
+	swap.Get()
+
+	mb := int(((mem.Total + swap.Total) * 2) / (1024 * 1024))
+
+	t.Logf("allocating %d MB", mb)
+
+	var holder [][]byte
+	for i := 0; i < mb; i++ {
+		buf := make([]byte, 1024*1024)
+		for k := range buf {
+			buf[k] = 255
+		}
+		Slice(buf)
+		holder = append(holder, buf)
+	}
+
+	_ = holder // if we get here without getting killed, the test was a success
 }
 
 func ExamplePool() {
