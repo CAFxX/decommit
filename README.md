@@ -46,6 +46,7 @@ func putBuffer(buf *buffer) {
 - Decommitting is performed via `madvise(MADV_DONTNEED)` on linux/mac/bsd and `DiscardVirtualMemory` on windows, but this may change in the future.
 - It does not make sense to decommit memory of a newly-allocated slice because newly-allocated slices are normally already not committed (until accessed for read/write).
 - The whole memory used by the slice is affected by the call, i.e. `s[0:cap(s)]`; if needed you can limit the affected range by reducing the capacity of the slice e.g. with `decommit.Slice(s[:n:n])`.
+- For safety, this approach can only be applied to memory that does not contain pointers/references. So e.g. a slice of pointers, strings, maps, channels or structs containing pointer/references can not be decommitted safely (as the GC will need to scan that memory, with the result of undoing the decommit operation, and may interpret garbage contained in the recommitted memory as valid pointers/references, potentially leaking memory or causing other misbehaviors). 
 
 ## License
 
