@@ -10,10 +10,10 @@ The contents of a slice that has been decommitted are undeterminate: they could 
 
 ```golang
 // Assume that buf is a slice larger than a page (normally 4KB, but OS dependent:
-// see os.Getpagesize())
+// see os.Getpagesize()) and that we do not need its contents anymore.
 decommit.Slice(buf)
-// If the OS supports it, the memory backing the slice has been decommitted, and
-// it will remain so until the slice contents (that are no undetermined) are
+// If the OS supports it, the memory backing the slice should have been decommitted,
+// and it will remain so until the slice contents (that are now undetermined) are
 // accessed for reading or writing.
 ```
 
@@ -45,6 +45,7 @@ func putBuffer(buf *buffer) {
 - Decommitting a slice normally requires performing a syscall.
 - Decommitting is performed via `madvise(MADV_DONTNEED)` on linux/mac/bsd and `DiscardVirtualMemory` on windows, but this may change in the future.
 - It does not make sense to decommit memory of a newly-allocated slice because newly-allocated slices are normally already not committed (until accessed for read/write).
+- The whole memory used by the slice is affected by the call, i.e. `s[0:cap(s)]`; if needed you can limit the affected range by reducing the capacity of the slice e.g. with `decommit.Slice(s[:n:n])`.
 
 ## License
 
