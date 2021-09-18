@@ -1,3 +1,5 @@
+//go:build testing
+
 package decommit
 
 import (
@@ -8,6 +10,8 @@ import (
 
 	sigar "github.com/cloudfoundry/gosigar"
 )
+
+const isTesting = true
 
 func TestSlice(t *testing.T) {
 	ps := os.Getpagesize()

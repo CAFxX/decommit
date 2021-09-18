@@ -45,11 +45,35 @@ func Slice(buf []byte) int {
 	return l
 }
 
+/*
+import "constraints"
+
+// noptr is a constraint for types that can not contain pointers or references
+type noptr interface {
+	// TODO: add array of noptr ([...]noptr)
+	// TODO: add struct containing only noptr types
+	constraints.Integer | constraints.Float | constraints.Complex | ~byte | ~rune | ~bool
+}
+
+func Slice[T noptr](s []T) int {
+	buf = buf[:cap(buf)]
+	if len(buf) < int(ps) || len(buf) == 0 {
+		return 0
+	}
+	var zero T
+	start := uintptr(unsafe.Pointer(&buf[0]))
+	end := start + uintptr(len(buf)) * unsafe.Sizeof(zero)
+	l := decommit(start, end)
+	runtime.KeepAlive(buf)
+	return l
+}
+*/
+
 var decommitHook func(uintptr, uintptr, uintptr, uintptr, int) (uintptr, int) // for testing
 
 func decommit(start, end uintptr) int {
 	astart, aend, alength := pageAlign(start, end)
-	if decommitHook != nil {
+	if isTesting && decommitHook != nil {
 		astart, alength = decommitHook(start, end, astart, aend, alength)
 	}
 	if alength == 0 {
