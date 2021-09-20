@@ -40,47 +40,57 @@ func TestPageAlign(t *testing.T) {
 		ps, psm = oldps, oldpsm
 	})
 
-	ps4, psm4 := uintptr(1<<12), uintptr((1<<12)-1)
 	cases := []struct {
-		ps      uintptr
-		psm     uintptr
-		start   uintptr
-		end     uintptr
-		astart  uintptr
-		alength int
+		ps  uintptr
+		psm uintptr
 	}{
-		{ps4, psm4, 5 * ps4, 6 * ps4, 5 * ps4, int(ps4)},
-		{ps4, psm4, 5 * ps4, 6*ps4 - 1, 0, 0},
-		{ps4, psm4, 5 * ps4, 6*ps4 + 1, 5 * ps4, int(ps4)},
-		{ps4, psm4, 5*ps4 - 1, 6 * ps4, 5 * ps4, int(ps4)},
-		{ps4, psm4, 5*ps4 + 1, 6 * ps4, 0, 0},
-		{ps4, psm4, 5*ps4 - 1, 6*ps4 - 1, 0, 0},
-		{ps4, psm4, 5*ps4 + 1, 6*ps4 - 1, 0, 0},
-		{ps4, psm4, 5*ps4 - 1, 6*ps4 + 1, 5 * ps4, int(ps4)},
-		{ps4, psm4, 5*ps4 + 1, 6*ps4 + 1, 0, 0},
-
-		{ps4, psm4, 5 * ps4, 7 * ps4, 5 * ps4, int(2 * ps4)},
-		{ps4, psm4, 5*ps4 + 1, 7 * ps4, 6 * ps4, int(ps4)},
-		{ps4, psm4, 5 * ps4, 7*ps4 - 1, 5 * ps4, int(ps4)},
-		{ps4, psm4, 5*ps4 + 1, 7*ps4 - 1, 0, 0},
-
-		{ps4, psm4, 5 * ps4, 8 * ps4, 5 * ps4, int(3 * ps4)},
-		{ps4, psm4, 5*ps4 + 1, 8 * ps4, 6 * ps4, int(2 * ps4)},
-		{ps4, psm4, 5 * ps4, 8*ps4 - 1, 5 * ps4, int(2 * ps4)},
-		{ps4, psm4, 5*ps4 + 1, 8*ps4 - 1, 6 * ps4, int(ps4)},
-
-		{ps4, psm4, 6 * ps4, 5 * ps4, 0, 0},
+		{1 << 12, (1 << 12) - 1},
+		{1 << 14, (1 << 14) - 1},
+		{1 << 20, (1 << 20) - 1},
+		{1000, 0}, // unrealistic
 	}
-	for idx, c := range cases {
-		t.Run(strconv.Itoa(idx), func(t *testing.T) {
-			t.Log(c)
+	for _, c := range cases {
+		t.Run(strconv.Itoa(int(ps)), func(t *testing.T) {
 			ps, psm = c.ps, c.psm
-			astart, _, alength := pageAlign(c.start, c.end)
-			if astart != c.astart {
-				t.Error("astart", astart)
+			cases := []struct {
+				start   uintptr
+				end     uintptr
+				astart  uintptr
+				alength int
+			}{
+				{5 * ps, 6 * ps, 5 * ps, int(ps)},
+				{5 * ps, 6*ps - 1, 0, 0},
+				{5 * ps, 6*ps + 1, 5 * ps, int(ps)},
+				{5*ps - 1, 6 * ps, 5 * ps, int(ps)},
+				{5*ps + 1, 6 * ps, 0, 0},
+				{5*ps - 1, 6*ps - 1, 0, 0},
+				{5*ps + 1, 6*ps - 1, 0, 0},
+				{5*ps - 1, 6*ps + 1, 5 * ps, int(ps)},
+				{5*ps + 1, 6*ps + 1, 0, 0},
+
+				{5 * ps, 7 * ps, 5 * ps, int(2 * ps)},
+				{5*ps + 1, 7 * ps, 6 * ps, int(ps)},
+				{5 * ps, 7*ps - 1, 5 * ps, int(ps)},
+				{5*ps + 1, 7*ps - 1, 0, 0},
+
+				{5 * ps, 8 * ps, 5 * ps, int(3 * ps)},
+				{5*ps + 1, 8 * ps, 6 * ps, int(2 * ps)},
+				{5 * ps, 8*ps - 1, 5 * ps, int(2 * ps)},
+				{5*ps + 1, 8*ps - 1, 6 * ps, int(ps)},
+
+				{6 * ps, 5 * ps, 0, 0},
 			}
-			if alength != c.alength {
-				t.Error("alength", alength)
+			for idx, c := range cases {
+				t.Run(strconv.Itoa(idx), func(t *testing.T) {
+					t.Log(c)
+					astart, _, alength := pageAlign(c.start, c.end)
+					if astart != c.astart {
+						t.Error("astart", astart)
+					}
+					if alength != c.alength {
+						t.Error("alength", alength)
+					}
+				})
 			}
 		})
 	}
