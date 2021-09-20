@@ -33,6 +33,8 @@ func init() {
 // os.Getpagesize()): Slice will automatically perform the required
 // alignment operations, but this means that slices smaller than the page
 // size will not be decommitted.
+// Calling Slice passing as argument a slice that is not allocated by the Go
+// runtime may result in unexpected side effects.
 func Slice(buf []byte) int {
 	buf = buf[:cap(buf)]
 	if len(buf) < int(ps) || len(buf) == 0 {
