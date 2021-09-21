@@ -2,7 +2,9 @@ package decommit
 
 import (
 	"os"
+	"reflect"
 	"runtime"
+	"sync"
 	"unsafe"
 )
 
@@ -45,6 +47,90 @@ func Slice(buf []byte) int {
 	l := decommit(start, end)
 	runtime.KeepAlive(buf)
 	return l
+}
+
+// Any decommits the memory used by the provided obj.
+// It returns the number of bytes that have been decommitted.
+// Any relies on reflection to detect whether it is safe to decommit the
+// memory used by obj: it is generally more performant to use Slice instead.
+func Any(obj interface{}) int {
+	start, length := findRegion(reflect.ValueOf(obj))
+	if length < ps {
+		return 0
+	}
+	l := decommit(start, start+length)
+	runtime.KeepAlive(obj)
+	return l
+}
+
+func findRegion(obj reflect.Value) (uintptr, uintptr) {
+loop:
+	switch obj.Kind() {
+	case reflect.Ptr, reflect.Interface:
+		if !obj.IsNil() {
+			obj = obj.Elem()
+			goto loop
+		}
+	case reflect.Slice:
+		if !containsPointers(obj.Type().Elem()) {
+			return obj.Pointer(), uintptr(obj.Len() * int(obj.Type().Size()))
+		}
+	case reflect.Array:
+		if !containsPointers(obj.Type().Elem()) && obj.CanAddr() {
+			return obj.UnsafeAddr(), obj.Type().Size()
+		}
+	case reflect.Struct:
+		if !containsPointers(obj.Type()) && obj.CanAddr() {
+			return obj.UnsafeAddr(), obj.Type().Size()
+		}
+	case reflect.Map:
+		// TODO: we may want to try to do something smart with the unused space
+		// in the memory backing the map; for now we do nothing
+	case reflect.Chan:
+		// TODO: we may want to try to do something smart with the unused space
+		// in the memory backing the channel; for now we do nothing
+	case reflect.Func, reflect.String:
+		// nothing to do
+	case reflect.UnsafePointer:
+		// we have no idea what the pointer is pointing to, so bail out
+	default:
+		// almost certainly not something we can decommit
+	}
+	return 0, 0
+}
+
+var typeMap sync.Map
+
+func containsPointers(t reflect.Type) bool {
+	if hasPtr, found := typeMap.Load(t); found {
+		return hasPtr.(bool)
+	}
+	hasPtr := hasPointers(t)
+	typeMap.Store(t, hasPtr)
+	return hasPtr
+}
+
+func hasPointers(t reflect.Type) bool {
+	switch t.Kind() {
+	case reflect.Map, reflect.Chan, reflect.Ptr, reflect.Slice, reflect.Interface, reflect.Func, reflect.String, reflect.UnsafePointer:
+		return true
+	case reflect.Array:
+		return hasPointers(t.Elem())
+	case reflect.Struct:
+		for i := 0; i < t.NumField(); i++ {
+			if hasPointers(t.Field(i).Type) {
+				return true
+			}
+		}
+		return false
+	default:
+		return false
+	}
+}
+
+// Stack decommits the unused part of the calling goroutine stack.
+func Stack() int {
+	return 0
 }
 
 /*
