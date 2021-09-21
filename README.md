@@ -42,6 +42,7 @@ func putBuffer(buf *buffer) {
 
 - This operation is transparent to the Go runtime, it only affects the OS. As a result, it can **not** be detected via `runtime.MemStats` or other runtime-provided mechanisms.
 - This operation is best-effort. It requests the OS to eagerly decommit memory, but there is no guarantee that the OS will effectively do it (or when it will do it).
+- Most operating systems place restrictions on the granularity of the decommit operation: most commonly they require that only whole pages are decommitted (i.e. that the start of the range is pagesize-aligned, and that the length of the range is a multiple of the pagesize).
 - Decommitting a slice normally requires performing a syscall.
 - Decommitting is performed via `madvise(MADV_DONTNEED)` on linux/mac/bsd and `DiscardVirtualMemory` on windows, but this may change in the future.
 - It does not make sense to decommit memory of a newly-allocated slice because newly-allocated slices are normally already not committed (until accessed for read/write).
