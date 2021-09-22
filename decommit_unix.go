@@ -1,4 +1,8 @@
 //go:build (darwin || dragonfly || freebsd || linux || netbsd || openbsd || solaris) && gc && !ppc64le && !ppc64
+// +build darwin dragonfly freebsd linux netbsd openbsd solaris
+// +build gc
+// +build !ppc64le
+// +build !ppc64
 
 package decommit
 
