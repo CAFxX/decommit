@@ -1,6 +1,9 @@
 # decommit
 
-Temporarily decommit the memory that backs allocated byte slices.
+Temporarily decommit the memory that backs allocated byte slices. 
+
+[![Go Reference](https://pkg.go.dev/badge/github.com/CAFxX/decommit.svg)](https://pkg.go.dev/github.com/CAFxX/decommit)
+![Build](https://github.com/CAFxX/decommit/actions/workflows/go.yml/badge.svg)
 
 This is useful in some limited scenarios where byte slices are long-lived or reused, e.g. when passing a reused byte slice to a read operation that can block for a long time (like when reading from a network connection).
 
